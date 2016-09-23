@@ -13,8 +13,8 @@ pycbc_adjust_strain --pad-data 8 --sample-rate 16384 \
     --transfer-function-d ${TF_D} \
     --strain-high-pass 20 \
     --fc0 341 \
-    --channel-name H1:DCS-CALIB_STRAIN_C01 \
-    --frame-files <file name="112625/H-H1_HOFT_C01-1126256640-4096.gwf"/> <file name="112626/H-H1_HOFT_C01-1126260736-4096.gwf"/> \
+    --channel-name H1:DCS-CALIB_STRAIN_C02 \
+    --frame-type H1_HOFT_C02 \
     --gps-start-time 1126258704 \
     --gps-end-time 1126260768 \
     --kappa-tst 0.75 \
