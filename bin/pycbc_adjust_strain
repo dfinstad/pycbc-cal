@@ -38,21 +38,21 @@ parser.add_argument("--delta-fc", type=float, required=True,
                     help="Change in the cavity pole frequency in Hertz.")
 parser.add_argument("--kappa-tst-re", type=float, required=True,
                     help="New real part of gain in the test mass "
-                         "actuation function $A_{tst}$ "
-                         "(initially 1.0 at $t_0$).")
+                         "actuation function A_{tst} "
+                         "(initially 1.0 at t_0).")
 parser.add_argument("--kappa-tst-im", type=float, required=True,
                     help="New imaginary part of gain in the test mass "
-                         "actuation function $A_{tst}$ "
-                         "(initially 0.0 at $t_0$).")
+                         "actuation function A_{tst} "
+                         "(initially 0.0 at t_0).")
 parser.add_argument("--kappa-pu-re", type=float, required=True,
                     help="New real part of gain in the actuation "
-                         "function $A_{pu}$ (initially 1.0 at $t_0$).")
+                         "function A_{pu} (initially 1.0 at t_0).")
 parser.add_argument("--kappa-pu-im", type=float, required=True,
                     help="New imaginary part of gain in the actuation "
-                         "function $A_{pu}$ (initially 0.0 at $t_0$).")
+                         "function A_{pu} (initially 0.0 at t_0).")
 parser.add_argument("--kappa-c", type=float, required=True,
                     help="New gain in the sensing function C "
-                         "(initially 1.0 at $t_0$).")
+                         "(initially 1.0 at t_0).")
 
 # calibration data options
 parser.add_argument("--transfer-function-a-tst", type=str, required=True,
@@ -101,13 +101,15 @@ cal = cal.Calibration(freq=freqlist, fc0=opts.fc0,
 # get strain
 strain = _strain.from_cli(opts)
 
-# adjust strain
+# adjust strain with time-varying parameters from command line
 logging.info("Adjusting strain")
-strain_adjusted = adjust.adjust_strain_with_new_transfer_function(
-                    strain, cal, 
-                    deltafc=opts.delta_fc, kc=opts.kappa_c, 
-                    ktst=opts.kappa_tst_re, ktstim=opts.kappa_tst_im, 
-                    kpu=opts.kappa_pu_re, kpuim=opts.kappa_pu_im, plots=False)
+strain_adjusted = adjust.adjust_strain(strain, cal, 
+                                       delta_fc=opts.delta_fc,
+                                       kappa_c=opts.kappa_c, 
+                                       kappa_tst_re=opts.kappa_tst_re,
+                                       kappa_tst_im=opts.kappa_tst_im, 
+                                       kappa_pu_re=opts.kappa_pu_re,
+                                       kappa_pu_im=opts.kappa_pu_im)
 
 # write frame file with adjusted strain
 logging.info("Writing frame with adjusted strain")
