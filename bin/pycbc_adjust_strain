@@ -1,4 +1,22 @@
 #! /usr/bin/env python
+# Copyright (C) 2015 Ben Lackey, Christopher M. Biwer
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+""" Adjusts the strain of the detector by varying the time-dependent
+parameters.
+"""
 
 import argparse
 import logging
@@ -9,44 +27,51 @@ from pycbc_cal import cal
 from pycbc_cal import transfer
 
 # command line usage
-parser = argparse.ArgumentParser(usage='pycbc_adjust_strain [--options]',
-                  description='Adjusts strain based on calibration model.')
-
-# frame file options
-parser.add_argument('--ifo', type=str,
-                  help='IFO name (eg. H1, L1).')
+parser = argparse.ArgumentParser(usage=__file__ + " [--options]",
+                                 description=__doc__)
 
 # model parameters options
-parser.add_argument('--fc0', type=float, required=True,
-                  help='Initial cavity pole frequency')
-parser.add_argument('--delta-fc', type=float, required=True,
-                  help='Change in the cavity pole frequency.')
-parser.add_argument('--kappa-tst', type=float, required=True,
-                  help='New gain in the test mass actuation function A_tst (initially 1.0 at t_0).')
-parser.add_argument('--kappa-tstim', type=float, required=True,
-                  help='New imaginary part of gain in the test mass actuation function A_tst (initially 0.0 at t_0).')
-parser.add_argument('--kappa-pu', type=float, required=True,
-                  help='New gain in the combined actuation function A_pu of the upper stages UIM and PUM (initially 1.0 at t_0).')
-parser.add_argument('--kappa-puim', type=float, required=True,
-                  help='New imaginary part of gain in the actuation function A_pu (initially 0.0 at t_0).')
-parser.add_argument('--kappa-c', type=float, required=True,
-                  help='New gain in the sensing function C (initially 1.0 at t_0).')
+parser.add_argument("--fc0", type=float, required=True,
+                    help="Initial cavity pole frequency in Hertz.")
+parser.add_argument("--delta-fc", type=float, required=True,
+                    help="Change in the cavity pole frequency in Hertz.")
+parser.add_argument("--kappa-tst-re", type=float, required=True,
+                    help="New real part of gain in the test mass "
+                         "actuation function $A_{tst}$ "
+                         "(initially 1.0 at $t_0$).")
+parser.add_argument("--kappa-tst-im", type=float, required=True,
+                    help="New imaginary part of gain in the test mass "
+                         "actuation function $A_{tst}$ "
+                         "(initially 0.0 at $t_0$).")
+parser.add_argument("--kappa-pu-re", type=float, required=True,
+                    help="New real part of gain in the actuation "
+                         "function $A_{pu}$ (initially 1.0 at $t_0$).")
+parser.add_argument("--kappa-pu-im", type=float, required=True,
+                    help="New imaginary part of gain in the actuation "
+                         "function $A_{pu}$ (initially 0.0 at $t_0$).")
+parser.add_argument("--kappa-c", type=float, required=True,
+                    help="New gain in the sensing function C "
+                         "(initially 1.0 at $t_0$).")
 
 # calibration data options
-parser.add_argument('--transfer-function-atst', type=str, required=True,
-                  help='Path to ASCII file that contains reference actuation function A_tst for test mass.')
-parser.add_argument('--transfer-function-apu', type=str, required=True,
-                  help='Path to ASCII file that contains reference actuation function A_pu for the upper pendulum stages.')
-parser.add_argument('--transfer-function-c', type=str, required=True,
-                  help='Path to ASCII file that contains reference  sensing function.')
-parser.add_argument('--transfer-function-d', type=str, required=True,
-                  help='Path to ASCII file that contains reference digital filters.')
+parser.add_argument("--transfer-function-a-tst", type=str, required=True,
+                  help="Path to ASCII file that contains reference actuation "
+                       "function A_tst for test mass.")
+parser.add_argument("--transfer-function-a-pu", type=str, required=True,
+                  help="Path to ASCII file that contains reference actuation "
+                       "function A_pu for the upper pendulum stages.")
+parser.add_argument("--transfer-function-c", type=str, required=True,
+                  help="Path to ASCII file that contains reference "
+                       "sensing function.")
+parser.add_argument("--transfer-function-d", type=str, required=True,
+                  help="Path to ASCII file that contains reference "
+                       "digital filters.")
 
 # output options
-parser.add_argument('--output-frame', type=str, required=True,
-                  help='Path of frame file to write adjusted strain.')
-parser.add_argument('--output-image', type=str,
-                  help='Path of image to plot adjusted strain timeseries.')
+parser.add_argument("--output-frame", type=str, required=True,
+                  help="Path of frame file to write adjusted strain.")
+parser.add_argument("--output-image", type=str,
+                  help="Path of image to plot adjusted strain timeseries.")
 
 # add option groups
 # This provides more options that are passed to _strain.from_cli(opts)
@@ -58,16 +83,12 @@ opts = parser.parse_args()
 
 # set log
 logging_level = logging.DEBUG
-logging.basicConfig(format='%(asctime)s : %(message)s', level=logging_level)
-
-# set data parameters
-observatory  = opts.ifo[0]
-plot_flag    = False
+logging.basicConfig(format="%(asctime)s : %(message)s", level=logging_level)
 
 # get transfer functions
-logging.info('Reading transfer functions from files')
-epochlist_Atst = transfer.zpk_file_to_array(opts.transfer_function_atst)
-epochlist_Apu = transfer.zpk_file_to_array(opts.transfer_function_apu)
+logging.info("Reading transfer functions from files")
+epochlist_Atst = transfer.zpk_file_to_array(opts.transfer_function_a_tst)
+epochlist_Apu = transfer.zpk_file_to_array(opts.transfer_function_a_pu)
 epochlist_C = transfer.zpk_file_to_array(opts.transfer_function_c)
 epochlist_D = transfer.zpk_file_to_array(opts.transfer_function_d)
 
@@ -76,19 +97,19 @@ freqlist = epochlist_C[:, 0]
 cal = cal.Calibration(freq=freqlist, C0=epochlist_C[:, 1], D0=epochlist_D[:, 1], Atst0=epochlist_Atst[:, 1], Apu0=epochlist_Apu[:, 1], fc0=opts.fc0)
 
 # get strain from frame files
-# 'from command line interface'
+# "from command line interface"
 strain = _strain.from_cli(opts)
 
 # adjust strain
-logging.info('Adjusting strain')
+logging.info("Adjusting strain")
 strain_adjusted = adjust.adjust_strain_with_new_transfer_function(strain, cal, 
                     deltafc=opts.delta_fc, kc=opts.kappa_c, 
-                    ktst=opts.kappa_tst, ktstim=opts.kappa_tstim, 
-                    kpu=opts.kappa_pu, kpuim=opts.kappa_puim, plots=False)
+                    ktst=opts.kappa_tst_re, ktstim=opts.kappa_tst_im, 
+                    kpu=opts.kappa_pu_re, kpuim=opts.kappa_pu_im, plots=False)
 
 # plot
 if opts.output_image:
-    logging.info('Plotting decimated time series')
+    logging.info("Plotting decimated time series")
     decimation = 10000
     fig = plt.figure(figsize=(16, 3))
     axes = fig.add_subplot(1, 1, 1)
@@ -97,8 +118,8 @@ if opts.output_image:
     plt.savefig(opts.output_image)
 
 # write frame file with adjusted strain
-logging.info('Writing frame with adjusted strain')
+logging.info("Writing frame with adjusted strain")
 frame.write_frame(opts.output_frame, opts.channel_name, strain_adjusted)
 
 # exit
-logging.info('Finished')
+logging.info("Finished")
