@@ -121,7 +121,8 @@ strain_adjusted = cal.adjust_strain(strain,
 
 # write frame file with adjusted strain
 logging.info("Writing frame with adjusted strain")
-frame.write_frame(opts.output_frame, opts.channel_name, strain_adjusted)
+frame.write_frame(opts.output_frame, opts.channel_name + "ADJUSTED",
+                  strain_adjusted)
 
 # exit
 logging.info("Finished")
