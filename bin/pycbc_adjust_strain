@@ -20,6 +20,7 @@ parameters.
 
 import argparse
 import logging
+import pycbc
 from pycbc import frame
 from pycbc import strain as _strain
 from pycbc_cal import adjust
@@ -70,52 +71,43 @@ parser.add_argument("--transfer-function-d", type=str, required=True,
 # output options
 parser.add_argument("--output-frame", type=str, required=True,
                   help="Path of frame file to write adjusted strain.")
-parser.add_argument("--output-image", type=str,
-                  help="Path of image to plot adjusted strain timeseries.")
+
+# logging options
+parser.add_argument("--verbose", action="store_true",
+                  help="Display progress.")
 
 # add option groups
-# This provides more options that are passed to _strain.from_cli(opts)
-# such as --injection-file which uses an xml file to add a GW sigal to the strain
 _strain.insert_strain_option_group(parser)
 
 # parse command line
 opts = parser.parse_args()
 
 # set log
-logging_level = logging.DEBUG
-logging.basicConfig(format="%(asctime)s : %(message)s", level=logging_level)
+pycbc.init_logging(opts.verbose)
 
 # get transfer functions
 logging.info("Reading transfer functions from files")
-epochlist_Atst = transfer.zpk_file_to_array(opts.transfer_function_a_tst)
-epochlist_Apu = transfer.zpk_file_to_array(opts.transfer_function_a_pu)
-epochlist_C = transfer.zpk_file_to_array(opts.transfer_function_c)
-epochlist_D = transfer.zpk_file_to_array(opts.transfer_function_d)
+tf_a_tst = transfer.zpk_file_to_array(opts.transfer_function_a_tst)
+tf_a_pu = transfer.zpk_file_to_array(opts.transfer_function_a_pu)
+tf_c = transfer.zpk_file_to_array(opts.transfer_function_c)
+tf_d = transfer.zpk_file_to_array(opts.transfer_function_d)
 
 # set initial calibration for each epoch
-freqlist = epochlist_C[:, 0]
-cal = cal.Calibration(freq=freqlist, C0=epochlist_C[:, 1], D0=epochlist_D[:, 1], Atst0=epochlist_Atst[:, 1], Apu0=epochlist_Apu[:, 1], fc0=opts.fc0)
+freqlist = tf_c[:, 0]
+cal = cal.Calibration(freq=freqlist, fc0=opts.fc0,
+                      C0=tf_c[:, 1], D0=tf_d[:, 1],
+                      Atst0=tf_a_tst[:, 1], Apu0=tf_a_pu[:, 1])
 
-# get strain from frame files
-# "from command line interface"
+# get strain
 strain = _strain.from_cli(opts)
 
 # adjust strain
 logging.info("Adjusting strain")
-strain_adjusted = adjust.adjust_strain_with_new_transfer_function(strain, cal, 
+strain_adjusted = adjust.adjust_strain_with_new_transfer_function(
+                    strain, cal, 
                     deltafc=opts.delta_fc, kc=opts.kappa_c, 
                     ktst=opts.kappa_tst_re, ktstim=opts.kappa_tst_im, 
                     kpu=opts.kappa_pu_re, kpuim=opts.kappa_pu_im, plots=False)
-
-# plot
-if opts.output_image:
-    logging.info("Plotting decimated time series")
-    decimation = 10000
-    fig = plt.figure(figsize=(16, 3))
-    axes = fig.add_subplot(1, 1, 1)
-    axes.plot(strain.sample_times.numpy()[::decimation], strain.numpy()[::decimation])
-    axes.plot(strain_adjusted.sample_times.numpy()[::decimation], strain_adjusted.numpy()[::decimation])
-    plt.savefig(opts.output_image)
 
 # write frame file with adjusted strain
 logging.info("Writing frame with adjusted strain")

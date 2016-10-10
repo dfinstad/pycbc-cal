@@ -10,7 +10,7 @@ TF_D=${TF_BASEDIR}/tf_A_tst.txt
 GPS_START_TIME=1136818495
 GPS_END_TIME=$((${GPS_START_TIME}+2048))
 
-pycbc_adjust_strain --pad-data 8 --sample-rate 16384 \
+pycbc_adjust_strain --verbose --pad-data 8 --sample-rate 16384 \
     --transfer-function-a-tst ${TF_ATST} \
     --transfer-function-a-pu ${TF_APU} \
     --transfer-function-c ${TF_C} \
