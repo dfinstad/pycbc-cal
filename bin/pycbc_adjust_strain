@@ -20,12 +20,22 @@ parameters.
 
 import argparse
 import logging
+import numpy
 import pycbc
 from pycbc import frame
 from pycbc import strain as _strain
 from pycbc_cal import adjust
 from pycbc_cal import cal
-from pycbc_cal import transfer
+
+def tf_from_file(path, delimiter=" "):
+    """ Convert the contents of a file with the columns
+    [freq, real(h), imag(h)] to a numpy.array with columns
+    [freq, real(h)+j*imag(h)].
+    """
+    data = numpy.loadtxt(path, delimiter=delimiter)
+    freq = data[:, 0]
+    h = data[:, 1] + 1.0j * data[:, 2]
+    return numpy.array([freq, h]).transpose()
 
 # command line usage
 parser = argparse.ArgumentParser(usage=__file__ + " [--options]",
@@ -85,12 +95,12 @@ opts = parser.parse_args()
 # set log
 pycbc.init_logging(opts.verbose)
 
-# get transfer functions
+# get complex-valued transfer functions
 logging.info("Reading transfer functions from files")
-tf_a_tst = transfer.zpk_file_to_array(opts.transfer_function_a_tst)
-tf_a_pu = transfer.zpk_file_to_array(opts.transfer_function_a_pu)
-tf_c = transfer.zpk_file_to_array(opts.transfer_function_c)
-tf_d = transfer.zpk_file_to_array(opts.transfer_function_d)
+tf_a_tst = tf_from_file(opts.transfer_function_a_tst)
+tf_a_pu = tf_from_file(opts.transfer_function_a_pu)
+tf_c = tf_from_file(opts.transfer_function_c)
+tf_d = tf_from_file(opts.transfer_function_d)
 
 # set initial calibration for each epoch
 freqlist = tf_c[:, 0]
