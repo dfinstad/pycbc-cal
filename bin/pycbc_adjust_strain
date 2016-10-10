@@ -24,7 +24,6 @@ import numpy
 import pycbc
 from pycbc import frame
 from pycbc import strain as _strain
-from pycbc_cal import adjust
 from pycbc_cal import cal
 
 def tf_from_file(path, delimiter=" "):
@@ -102,7 +101,7 @@ a_pu = tf_from_file(opts.transfer_function_a_pu)
 c = tf_from_file(opts.transfer_function_c)
 d = tf_from_file(opts.transfer_function_d)
 
-# set initial calibration for each epoch
+# set initial calibration for epoch
 freqlist = c[:, 0]
 cal = cal.Calibration(freq=freqlist, fc0=opts.fc0, c0=c[:, 1], d0=d[:, 1],
                       a_tst0=a_tst[:, 1], a_pu0=a_pu[:, 1])
@@ -112,13 +111,13 @@ strain = _strain.from_cli(opts)
 
 # adjust strain with time-varying parameters from command line
 logging.info("Adjusting strain")
-strain_adjusted = adjust.adjust_strain(strain, cal, 
-                                       delta_fc=opts.delta_fc,
-                                       kappa_c=opts.kappa_c, 
-                                       kappa_tst_re=opts.kappa_tst_re,
-                                       kappa_tst_im=opts.kappa_tst_im, 
-                                       kappa_pu_re=opts.kappa_pu_re,
-                                       kappa_pu_im=opts.kappa_pu_im)
+strain_adjusted = cal.adjust_strain(strain, 
+                                    delta_fc=opts.delta_fc,
+                                    kappa_c=opts.kappa_c, 
+                                    kappa_tst_re=opts.kappa_tst_re,
+                                    kappa_tst_im=opts.kappa_tst_im, 
+                                    kappa_pu_re=opts.kappa_pu_re,
+                                    kappa_pu_im=opts.kappa_pu_im)
 
 # write frame file with adjusted strain
 logging.info("Writing frame with adjusted strain")
