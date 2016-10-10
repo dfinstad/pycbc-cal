@@ -2,13 +2,11 @@
 
 import argparse
 import logging
-from pycbc_cal import transfer
-from pycbc_cal.adjust import adjust_strain_with_new_transfer_function
-from pycbc_cal.cal import Calibration
-from pycbc import DYN_RANGE_FAC
+from pycbc import frame
 from pycbc import strain as _strain
-from pycbc.frame import datafind_connection, read_frame, write_frame
-from pycbc.inject import InjectionSet
+from pycbc_cal import adjust
+from pycbc_cal import cal
+from pycbc_cal import transfer
 
 # command line usage
 parser = argparse.ArgumentParser(usage='pycbc_adjust_strain [--options]',
@@ -75,7 +73,7 @@ epochlist_D = transfer.zpk_file_to_array(opts.transfer_function_d)
 
 # set initial calibration for each epoch
 freqlist = epochlist_C[:, 0]
-cal = Calibration(freq=freqlist, C0=epochlist_C[:, 1], D0=epochlist_D[:, 1], Atst0=epochlist_Atst[:, 1], Apu0=epochlist_Apu[:, 1], fc0=opts.fc0)
+cal = cal.Calibration(freq=freqlist, C0=epochlist_C[:, 1], D0=epochlist_D[:, 1], Atst0=epochlist_Atst[:, 1], Apu0=epochlist_Apu[:, 1], fc0=opts.fc0)
 
 # get strain from frame files
 # 'from command line interface'
@@ -83,7 +81,7 @@ strain = _strain.from_cli(opts)
 
 # adjust strain
 logging.info('Adjusting strain')
-strain_adjusted = adjust_strain_with_new_transfer_function(strain, cal, 
+strain_adjusted = adjust.adjust_strain_with_new_transfer_function(strain, cal, 
                     deltafc=opts.delta_fc, kc=opts.kappa_c, 
                     ktst=opts.kappa_tst, ktstim=opts.kappa_tstim, 
                     kpu=opts.kappa_pu, kpuim=opts.kappa_puim, plots=False)
@@ -100,7 +98,7 @@ if opts.output_image:
 
 # write frame file with adjusted strain
 logging.info('Writing frame with adjusted strain')
-write_frame(opts.output_frame, opts.channel_name, strain_adjusted)
+frame.write_frame(opts.output_frame, opts.channel_name, strain_adjusted)
 
 # exit
 logging.info('Finished')
