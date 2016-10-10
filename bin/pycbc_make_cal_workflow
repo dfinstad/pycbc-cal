@@ -1,0 +1,269 @@
+#!/home/bdlackey/virtenvs/pycbc/bin/python
+# Copyright (C) 2015 Christopher M. Biwer
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+""" Creates a workflow that adjusts the time-varying calibration factors and
+matched-filters with a single-template to recover SNR and newSNR.
+"""
+
+import pycbc
+import pycbc.version
+
+import os
+import copy
+import logging
+import numpy
+import urlparse
+import argparse
+import lal
+import Pegasus.DAX3 as dax
+
+from glue import lal
+from glue import segments
+
+import pycbc.workflow as _workflow
+
+from pycbc.workflow.jobsetup import PyCBCInspiralExecutable
+
+################
+# setup workflow
+################
+
+# read command line
+parser = argparse.ArgumentParser(usage='pycbc_make_cal_workflow [--options]',
+                                 description="Workflow generator for adjusting calibration model.")
+parser.add_argument("--name", type=str, required=True,
+                    help="Descriptive name of the analysis.")
+_workflow.add_workflow_command_line_group(parser)
+args = parser.parse_args()
+
+# setup log
+logging.basicConfig(format='%(asctime)s:%(levelname)s : %(message)s',
+                    level=logging.INFO,datefmt='%I:%M:%S')
+
+# directory names
+runDir = os.path.join(os.getcwd(), args.name)
+datafindDir = runDir + '/datafind'
+fulldataDir = runDir + '/full_data'
+configDir = runDir + '/config'
+segDir = runDir + '/segments'
+resultsDir = runDir + '/results'
+
+# change into run dir
+if not os.path.exists(runDir):
+  os.makedirs(runDir)
+os.chdir(runDir)
+
+# setup workflow and sub-workflows
+container = _workflow.Workflow(args, args.name)
+workflow = _workflow.Workflow(args, 'main')
+
+###################################
+# retrieve segments and frame files
+###################################
+
+# check that there is just one IFO
+ifo = workflow.ifos[0]
+if len(workflow.ifos) > 1:
+    logging.warn('More than one IFO described in ini file. Can only handle one IFO at the moment.')
+
+# get segments
+data_segs = segments.segmentlistdict()
+data_segs[ifo] = segments.segmentlist([])
+data_segs[ifo].append(segments.segment(workflow.analysis_time[0], workflow.analysis_time[1]))
+
+# extend segment by 100 seconds to get a bit more data than required
+data_segs.protract(100)
+
+# get frames
+seg_filelist = _workflow.FileList([])
+frame_files, data_segs = _workflow.setup_datafind_workflow(workflow, data_segs,
+                           datafindDir, seg_filelist)
+
+# remove the extra 100 seconds from the segment
+data_segs.contract(100)
+
+#####################
+# setup template bank
+#####################
+
+# setup template bank
+banks = _workflow.setup_tmpltbank_workflow(workflow, data_segs, frame_files,
+                                       datafindDir)
+
+##############################################
+# setup adjust strain nodes and inspiral nodes
+##############################################
+
+# create an Executable for adjusting the calibration model parameters
+# !!! pycbc_adjust_strain, run here, is where the waveform is injected into the data. !!!
+adjust_strain_exe = _workflow.Executable(workflow.cp, 'adjust_strain',
+                        out_dir=datafindDir, tags=[ifo])
+
+# create an Executable for matched filtering
+# !!! The waveform is NOT injected in pycbc_inspiral.
+# Although pycbc_inspiral can inject a waveform, in this code it only
+# searches for the waveform that was injected above. !!!
+injection_file = None
+inspiral_exe = PyCBCInspiralExecutable(workflow.cp, 'inspiral', ifo=ifo,
+                        out_dir=fulldataDir, injection_file=injection_file,
+                        tags=[])
+
+# create an empty list to store output files
+inspiral_files = _workflow.FileList([])
+
+
+def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe, frame_files, data_segs, ifo, banks, inspiral_files, param, param_value, kappa_tst=1.0, kappa_tstim=0.0, kappa_pu=1.0, kappa_puim=0.0, kappa_c=1.0, delta_fc=0.0):
+    """Run the adjust_strain and inspiral executables.
+    
+    Parameters
+    ----------
+    workflow : the fuck if I know what this means
+    adjust_strain_exe : executable
+    inspiral_exe : executable
+    frame_files : ?
+    data_segs : ?
+    ifo : str?
+        The interferometer to look at
+    banks : ?
+        Template bank
+    inspiral_files : list?
+        List to add the output of inspiral_file to
+    param : str
+        Name of the parameter you are adjusting.
+        This becomes part of the name in the adjusted .gwf frame file and .xml trigger file
+    param_value : float
+        Must be the same as the parameter below that you are changing
+    kappa_tst : float, 1.
+    kappa_tstim : float, 0.
+    kappa_pu : float, 1.
+    kappa_puim : float, 0.
+    kappa_c : float, 1.
+    delta_fc : float, 0.
+    
+    Returns
+    -------
+    Nothing
+    """
+    # tag part of the name in the adjusted .gwf (frame) files and .xml trigger files,
+    # and will be something like 'KAPPA_TST_0.92'
+    tag = param.upper() + '_' + str(param_value)
+    pad_data = 8
+    
+    # create a node for this value of kappa_tst
+    adjust_strain_node = adjust_strain_exe.create_node()
+    adjust_strain_node.add_input_list_opt('--frame-files', frame_files)
+    adjust_strain_node.add_opt('--gps-start-time', data_segs[ifo][0][0] - pad_data)
+    adjust_strain_node.add_opt('--gps-end-time', data_segs[ifo][0][1] + pad_data)
+    adjust_strain_node.add_opt('--kappa-tst', str(kappa_tst))
+    adjust_strain_node.add_opt('--kappa-tstim', str(kappa_tstim))
+    adjust_strain_node.add_opt('--kappa-pu', str(kappa_pu))
+    adjust_strain_node.add_opt('--kappa-puim', str(kappa_puim))
+    adjust_strain_node.add_opt('--kappa-c', str(kappa_c))
+    # If delta_fc = 0.0 and isn't cast to str, then it will be read by the argument parser as None
+    # (as in the argument doesn't exist).
+    adjust_strain_node.add_opt('--delta-fc', str(delta_fc))
+    adjust_strain_node.add_opt('--ifo', ifo)
+    
+    # create output file for the adjusted strain
+    adjusted_frame_file = _workflow.File(ifo, 'ADJUSTED_FRAME',
+                                            workflow.analysis_time,
+                                            directory=datafindDir,
+                                            extension='gwf',
+                                            tags=[tag])
+    
+    # add output file to node
+    adjust_strain_node.add_output_opt('--output-frame', adjusted_frame_file)
+    
+    # add node to workflow
+    workflow.add_node(adjust_strain_node)
+    
+    # get pregenerated bank for matched filtering
+    tmpltbank_file = banks[0]
+    
+    # create an insprial node for this value of kappa_tst
+    inspiral_node = inspiral_exe.create_node(data_segs[ifo][0].protract(pad_data), data_segs[ifo][0].protract(pad_data),
+                            parent=tmpltbank_file,
+                            dfParents=[adjusted_frame_file], tags=[tag])
+    workflow.add_node(inspiral_node)
+    #print inspiral_node.output_file
+    inspiral_files.append(inspiral_node.output_file)
+
+
+
+# loop over values of different kappa_tst
+for kappa_tst in numpy.linspace(0.75, 1.25, 51):
+    run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe, 
+                                        frame_files, data_segs, ifo, banks, inspiral_files, 
+                                        'kappa_tst', kappa_tst, kappa_tst=kappa_tst)
+
+# loop over values of different kappa_tstim
+for kappa_tstim in numpy.linspace(-0.25, 0.25, 51):
+    run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
+                                        frame_files, data_segs, ifo, banks, inspiral_files,
+                                        'kappa_tstim', kappa_tstim, kappa_tstim=kappa_tstim)
+
+# loop over values of different kappa_pu
+for kappa_pu in numpy.linspace(0.75, 1.25, 51):
+    run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
+                                        frame_files, data_segs, ifo, banks, inspiral_files,
+                                        'kappa_pu', kappa_pu, kappa_pu=kappa_pu)
+
+# loop over values of different kappa_puim
+for kappa_puim in numpy.linspace(-0.25, 0.25, 51):
+    run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
+                                        frame_files, data_segs, ifo, banks, inspiral_files,
+                                        'kappa_puim', kappa_puim, kappa_puim=kappa_puim)
+
+# loop over values of different kappa_C
+for kappa_c in numpy.linspace(0.75, 1.25, 51):
+    run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
+                                        frame_files, data_segs, ifo, banks, inspiral_files,
+                                        'kappa_c', kappa_c, kappa_c=kappa_c)
+
+# loop over values of different delta_fc
+for delta_fc in numpy.linspace(-40.0, 40.0, 51):
+    run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
+                                        frame_files, data_segs, ifo, banks, inspiral_files,
+                                        'delta_fc', delta_fc, delta_fc=delta_fc)
+
+## add a node that plots the values of SNR as kappa_tst changes
+#plot_stat_exe = _workflow.Executable(workflow.cp, 'plot_stat',
+#                        out_dir=datafindDir, tags=[ifo])
+#plot_stat_node = plot_stat_exe.create_node()
+#plot_stat_node.add_input_list_opt('--trigger-files', inspiral_files)
+#plot_stat_file = _workflow.File(ifo, 'NEWSNR_KAPPA_TST',
+#                                workflow.analysis_time,
+#                                directory=resultsDir,
+#                                extension='png',
+#                                tags=[])
+#plot_stat_node.add_output_opt('--output-file', plot_stat_file)
+#workflow.add_node(plot_stat_node)
+
+###############
+# save and exit
+###############
+
+# write configuration file
+if not os.path.exists(configDir):
+  os.makedirs(configDir)
+workflow.cp.write(file(configDir+'/'+'workflow_configuration.ini', 'w'))
+
+# append sub-workflows to workflow
+container += workflow
+
+# write dax
+container.save()
+logging.info('Finished.')

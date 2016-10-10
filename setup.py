@@ -25,6 +25,7 @@ author_email = "cmbiwer@gmail.com"
 
 scripts_list = [
     "bin/pycbc_adjust_strain",
+    "bin/pycbc_make_cal_workflow",
 ]
 
 packages_list = [
