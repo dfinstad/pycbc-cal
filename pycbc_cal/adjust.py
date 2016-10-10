@@ -45,12 +45,12 @@ def adjust_strain(strain, cal, delta_fc=0.0, kappa_c=1.0,
     strain_tilde = strain.to_frequencyseries()
 
     # get the "true" and "adjusted" transfer functions
-    r_true = cal.R0
-    r_adjusted = cal.update_R(deltafc=delta_fc, kc=kappa_c,
-                              ktst=kappa_tst_re,
-                              ktstim=kappa_tst_im,
-                              kpu=kappa_pu_re,
-                              kpuim=kappa_pu_im)
+    r_true = cal.r0
+    r_adjusted = cal.update_r(delta_fc=delta_fc, kappa_c=kappa_c,
+                              kappa_tst_re=kappa_tst_re,
+                              kappa_tst_im=kappa_tst_im,
+                              kappa_pu_re=kappa_pu_re,
+                              kappa_pu_im=kappa_pu_im)
 
     # get the error function to apply to the strain in the frequency-domain
     k = r_adjusted / r_true

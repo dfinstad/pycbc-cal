@@ -97,16 +97,15 @@ pycbc.init_logging(opts.verbose)
 
 # get complex-valued transfer functions
 logging.info("Reading transfer functions from files")
-tf_a_tst = tf_from_file(opts.transfer_function_a_tst)
-tf_a_pu = tf_from_file(opts.transfer_function_a_pu)
-tf_c = tf_from_file(opts.transfer_function_c)
-tf_d = tf_from_file(opts.transfer_function_d)
+a_tst = tf_from_file(opts.transfer_function_a_tst)
+a_pu = tf_from_file(opts.transfer_function_a_pu)
+c = tf_from_file(opts.transfer_function_c)
+d = tf_from_file(opts.transfer_function_d)
 
 # set initial calibration for each epoch
-freqlist = tf_c[:, 0]
-cal = cal.Calibration(freq=freqlist, fc0=opts.fc0,
-                      C0=tf_c[:, 1], D0=tf_d[:, 1],
-                      Atst0=tf_a_tst[:, 1], Apu0=tf_a_pu[:, 1])
+freqlist = c[:, 0]
+cal = cal.Calibration(freq=freqlist, fc0=opts.fc0, c0=c[:, 1], d0=d[:, 1],
+                      a_tst0=a_tst[:, 1], a_pu0=a_pu[:, 1])
 
 # get strain
 strain = _strain.from_cli(opts)
