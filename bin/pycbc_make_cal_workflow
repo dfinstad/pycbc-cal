@@ -89,8 +89,8 @@ data_segs.protract(100)
 
 # get frames
 seg_filelist = _workflow.FileList([])
-frame_files, data_segs = _workflow.setup_datafind_workflow(workflow, data_segs,
-                           datafindDir, seg_filelist)
+frame_files, _, data_segs, _ = _workflow.setup_datafind_workflow(workflow, data_segs,
+                                                                 datafindDir, seg_filelist)
 
 # remove the extra 100 seconds from the segment
 data_segs.contract(100)
