@@ -1,10 +1,10 @@
 #! /bin/bash
 
-TF_BASEDIR=/home/bdlackey/cbccalibration/calibrationdata/O1/
+TF_BASEDIR=../data/o1
 TF_ATST=${TF_BASEDIR}/tf_A_tst.txt
-TF_APU=${TF_BASEDIR}/tf_A_tst.txt
-TF_C=${TF_BASEDIR}/tf_A_tst.txt
-TF_D=${TF_BASEDIR}/tf_A_tst.txt
+TF_APU=${TF_BASEDIR}/tf_A_pu.txt
+TF_C=${TF_BASEDIR}/tf_C.txt
+TF_D=${TF_BASEDIR}/tf_D.txt
 
 
 GPS_START_TIME=1136818495
