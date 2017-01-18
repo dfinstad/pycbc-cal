@@ -41,5 +41,5 @@ pycbc_make_cal_workflow \
                      adjust_strain:transfer-function-d:${PATH_D}
 
 # This submits the workflow to the cluster then runs it.
-pycbc_submit_dax --no-create-proxy --dax ${WORKFLOW_NAME}/${WORKFLOW_NAME}.dax --accounting-group ligo.prod.o1.detchar.state.calib
+pycbc_submit_dax --no-create-proxy --dax ${WORKFLOW_NAME}/${WORKFLOW_NAME}.dax --accounting-group sugwg.astro
 
