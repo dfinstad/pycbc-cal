@@ -13,10 +13,11 @@ CHANNEL_NAME=H1:DCS-CALIB_STRAIN_C02
 CONFIG_PATH=${PWD}/config.ini
 
 # Paths to the transfer functions
-PATH_ATST=/home/bdlackey/cbccalibration/calibrationdata/ER8/tf_A_tst.txt
-PATH_APU=/home/bdlackey/cbccalibration/calibrationdata/ER8/tf_A_pu.txt
-PATH_C=/home/bdlackey/cbccalibration/calibrationdata/ER8/tf_C.txt
-PATH_D=/home/bdlackey/cbccalibration/calibrationdata/ER8/tf_D.txt
+BASE_PATH=../../data/o1
+PATH_ATST=${BASE_PATH}/tf_A_tst.txt
+PATH_APU=${BASE_PATH}/tf_A_pu.txt
+PATH_C=${BASE_PATH}/tf_C.txt
+PATH_D=${BASE_PATH}/tf_D.txt
 
 WORKFLOW_NAME='cal_workflow'
 
