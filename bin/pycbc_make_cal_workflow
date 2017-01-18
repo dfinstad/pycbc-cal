@@ -167,10 +167,10 @@ def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe
     adjust_strain_node.add_input_list_opt('--frame-files', frame_files)
     adjust_strain_node.add_opt('--gps-start-time', data_segs[ifo][0][0] - pad_data)
     adjust_strain_node.add_opt('--gps-end-time', data_segs[ifo][0][1] + pad_data)
-    adjust_strain_node.add_opt('--kappa-tst', str(kappa_tst))
-    adjust_strain_node.add_opt('--kappa-tstim', str(kappa_tstim))
-    adjust_strain_node.add_opt('--kappa-pu', str(kappa_pu))
-    adjust_strain_node.add_opt('--kappa-puim', str(kappa_puim))
+    adjust_strain_node.add_opt('--kappa-tst-re', str(kappa_tst))
+    adjust_strain_node.add_opt('--kappa-tst-im', str(kappa_tstim))
+    adjust_strain_node.add_opt('--kappa-pu-re', str(kappa_pu))
+    adjust_strain_node.add_opt('--kappa-pu-im', str(kappa_puim))
     adjust_strain_node.add_opt('--kappa-c', str(kappa_c))
     # If delta_fc = 0.0 and isn't cast to str, then it will be read by the argument parser as None
     # (as in the argument doesn't exist).
