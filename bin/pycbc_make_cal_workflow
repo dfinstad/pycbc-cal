@@ -175,7 +175,6 @@ def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe
     # If delta_fc = 0.0 and isn't cast to str, then it will be read by the argument parser as None
     # (as in the argument doesn't exist).
     adjust_strain_node.add_opt('--delta-fc', str(delta_fc))
-    adjust_strain_node.add_opt('--ifo', ifo)
     
     # create output file for the adjusted strain
     adjusted_frame_file = _workflow.File(ifo, 'ADJUSTED_FRAME',

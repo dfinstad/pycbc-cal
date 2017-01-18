@@ -13,7 +13,7 @@ CHANNEL_NAME=H1:DCS-CALIB_STRAIN_C02
 CONFIG_PATH=${PWD}/config.ini
 
 # Paths to the transfer functions
-BASE_PATH=../../data/o1
+BASE_PATH=${PWD}/../../data/o1
 PATH_ATST=${BASE_PATH}/tf_A_tst.txt
 PATH_APU=${BASE_PATH}/tf_A_pu.txt
 PATH_C=${BASE_PATH}/tf_C.txt
@@ -35,8 +35,8 @@ pycbc_make_cal_workflow \
                      workflow:end-time:${END_TIME} \
                      workflow-tmpltbank:tmpltbank-pregenerated-bank:${HWINJ_PATH} \
                      adjust_strain:injection-file:${HWINJ_PATH} \
-                     adjust_strain:transfer-function-atst:${PATH_ATST} \
-		     adjust_strain:transfer-function-apu:${PATH_APU} \
+                     adjust_strain:transfer-function-a-tst:${PATH_ATST} \
+		     adjust_strain:transfer-function-a-pu:${PATH_APU} \
                      adjust_strain:transfer-function-c:${PATH_C} \
                      adjust_strain:transfer-function-d:${PATH_D}
 
