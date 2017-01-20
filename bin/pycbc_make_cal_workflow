@@ -193,7 +193,14 @@ def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe
     tmpltbank_file = banks[0]
     
     # create an insprial node for this value of kappa_tst
-    inspiral_node = inspiral_exe.create_node(data_segs[ifo][0].protract(pad_data), data_segs[ifo][0].protract(pad_data),
+    #! FIXME: hacked hacked hacked
+    gps_start_time = data_segs[ifo][0][0] - pad_data
+    gps_end_time = data_segs[ifo][0][1] + pad_data
+    trig_start_time = gps_start_time + 120
+    trig_end_time  = gps_end_time - 120
+    gps_seg = segments.segment(gps_start_time, gps_end_time)
+    trig_seg = segments.segment(trig_start_time, trig_end_time)
+    inspiral_node = inspiral_exe.create_node(gps_seg, trig_seg,
                             parent=tmpltbank_file,
                             dfParents=[adjusted_frame_file], tags=[tag])
     workflow.add_node(inspiral_node)
