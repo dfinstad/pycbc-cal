@@ -1,8 +1,10 @@
 #! /bin/bash
 
-# September 6, 15:17UTC
-#INJECTION_TIME=1125587837
-INJECTION_TIME=1136818495
+# random times
+#for INJECTION_TIME in 1126253357 1126254257 1126255157 1126256417 1126257557 1126260497 1126266197 1126261397 1126264997 1126297757 1126294817 1126296497; do
+for INJECTION_TIME in 1126253357; do
+
+# times to analyze
 START_TIME=$((${INJECTION_TIME} - 750))
 END_TIME=$((${START_TIME} + 2048))
 
@@ -13,13 +15,17 @@ CHANNEL_NAME=H1:DCS-CALIB_STRAIN_C02
 CONFIG_PATH=${PWD}/config.ini
 
 # Paths to the transfer functions
-BASE_PATH=${PWD}/../../data/o1
-PATH_ATST=${BASE_PATH}/tf_A_tst.txt
-PATH_APU=${BASE_PATH}/tf_A_pu.txt
-PATH_C=${BASE_PATH}/tf_C.txt
-PATH_D=${BASE_PATH}/tf_D.txt
+BASE_PATH=${PWD}
+TF_PATH=${BASE_PATH}/../../data/o1
+PATH_ATST=${TF_PATH}/tf_A_tst.txt
+PATH_APU=${TF_PATH}/tf_A_pu.txt
+PATH_C=${TF_PATH}/tf_C.txt
+PATH_D=${TF_PATH}/tf_D.txt
 
-WORKFLOW_NAME='cal_workflow'
+WORKFLOW_NAME=cal_${INJECTION_TIME}
+
+mkdir ${WORKFLOW_NAME}
+cd ${WORKFLOW_NAME}
 
 pycbc_generate_hwinj --approximant EOBNRv2 --order pseudoFourPN --mass1 1.4 --mass2 1.4 --inclination 0.0 --polarization 0.0 --ra 1.0 --dec 1.0 --taper TAPER_START --network-snr 28 --geocentric-end-time ${INJECTION_TIME} --waveform-low-frequency-cutoff 30.0 --gps-start-time ${START_TIME} --gps-end-time ${END_TIME} --instruments H1 --frame-type ${FRAME_TYPE} --strain-high-pass H1:20 --sample-rate H1:16384 --psd-estimation median --psd-segment-length 16 --psd-segment-stride 8 --psd-inverse-length 16 --psd-low-frequency-cutoff 30 --psd-high-frequency-cutoff 1000 --pad-data H1:8 --channel-name ${CHANNEL_NAME}
 
@@ -43,3 +49,6 @@ pycbc_make_cal_workflow \
 # This submits the workflow to the cluster then runs it.
 pycbc_submit_dax --no-create-proxy --dax ${WORKFLOW_NAME}/${WORKFLOW_NAME}.dax --accounting-group sugwg.astro
 
+cd ${BASE_PATH}
+
+done
