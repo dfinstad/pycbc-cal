@@ -1,5 +1,4 @@
-software injection workflow
-###########################
+# software injection workflow
 
 This example injects a waveform into gravitational-wave frame data then adjusts the strain for the time-varying parameters of the calibration. The adjusted data is then filtered to recover the injection.
 
