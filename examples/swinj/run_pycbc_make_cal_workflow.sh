@@ -16,7 +16,7 @@ CONFIG_PATH=${PWD}/config.ini
 
 # Paths to the transfer functions
 BASE_PATH=${PWD}
-TF_PATH=${BASE_PATH}/../../data/o1
+TF_PATH=${HOME}/src/pycbc-cal/data/o1
 PATH_ATST=${TF_PATH}/tf_A_tst.txt
 PATH_APU=${TF_PATH}/tf_A_pu.txt
 PATH_C=${TF_PATH}/tf_C.txt
