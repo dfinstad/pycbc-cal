@@ -19,6 +19,7 @@ BASE_PATH=${PWD}
 TF_PATH=${HOME}/src/pycbc-cal/data/o1
 PATH_ATST=${TF_PATH}/tf_A_tst.txt
 PATH_APU=${TF_PATH}/tf_A_pu.txt
+PATH_AUIM=${TF_PATH}/tf_A_uim.txt
 PATH_C=${TF_PATH}/tf_C.txt
 PATH_D=${TF_PATH}/tf_D.txt
 
@@ -43,6 +44,7 @@ pycbc_make_cal_workflow \
                      adjust_strain:injection-file:${HWINJ_PATH} \
                      adjust_strain:transfer-function-a-tst:${PATH_ATST} \
 		     adjust_strain:transfer-function-a-pu:${PATH_APU} \
+                     adjust_strain:transfer-function-a-uim:${PATH_AUIM} \
                      adjust_strain:transfer-function-c:${PATH_C} \
                      adjust_strain:transfer-function-d:${PATH_D}
 
