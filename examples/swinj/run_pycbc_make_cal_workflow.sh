@@ -2,33 +2,40 @@
 
 # random times
 #for INJECTION_TIME in 1126253357 1126254257 1126255157 1126256417 1126257557 1126260497 1126266197 1126261397 1126264997 1126297757 1126294817 1126296497; do
-for INJECTION_TIME in 1126253357; do
+for INJECTION_TIME in 1165378840; do
 
 # times to analyze
 START_TIME=$((${INJECTION_TIME} - 750))
 END_TIME=$((${START_TIME} + 2048))
 
-FRAME_TYPE=H1:H1_HOFT_C02
-CHANNEL_NAME=H1:DCS-CALIB_STRAIN_C02
+FRAME_TYPE=L1:L1_HOFT_C01
+CHANNEL_NAME=L1:DCS-CALIB_STRAIN_C01
 
 # The location of your configuration (.ini) file
 CONFIG_PATH=${PWD}/config.ini
 
 # Paths to the transfer functions
 BASE_PATH=${PWD}
-TF_PATH=${HOME}/src/pycbc-cal/data/o1
-PATH_ATST=${TF_PATH}/tf_A_tst.txt
-PATH_APU=${TF_PATH}/tf_A_pu.txt
-PATH_AUIM=${TF_PATH}/tf_A_uim.txt
-PATH_C=${TF_PATH}/tf_C.txt
-PATH_D=${TF_PATH}/tf_D.txt
+TF_PATH=${HOME}/src/pycbc-cal-backup/data/o2/L1/
+PATH_ATST=${TF_PATH}/tst_tf.txt
+PATH_APU=${TF_PATH}/pum_tf.txt
+PATH_AUIM=${TF_PATH}/uim_tf.txt
+PATH_C=${TF_PATH}/c_tf.txt
+PATH_D=${TF_PATH}/d_tf.txt
 
 WORKFLOW_NAME=cal_${INJECTION_TIME}
+
+# Convert parameter degrees to radians
+INC=`python -c "import numpy; print numpy.deg2rad(82.3)"`
+POL=`python -c "import numpy; print numpy.deg2rad(181.)"`
+RA=`python -c "import numpy; print numpy.deg2rad(131.75)"`
+DEC=`python -c "import numpy; print numpy.deg2rad(43.3)"`
 
 mkdir ${WORKFLOW_NAME}
 cd ${WORKFLOW_NAME}
 
-pycbc_generate_hwinj --approximant EOBNRv2 --order pseudoFourPN --mass1 1.4 --mass2 1.4 --inclination 0.0 --polarization 0.0 --ra 1.0 --dec 1.0 --taper TAPER_START --network-snr 28 --geocentric-end-time ${INJECTION_TIME} --waveform-low-frequency-cutoff 30.0 --gps-start-time ${START_TIME} --gps-end-time ${END_TIME} --instruments H1 --frame-type ${FRAME_TYPE} --strain-high-pass H1:20 --sample-rate H1:16384 --psd-estimation median --psd-segment-length 16 --psd-segment-stride 8 --psd-inverse-length 16 --psd-low-frequency-cutoff 30 --psd-high-frequency-cutoff 1000 --pad-data H1:8 --channel-name ${CHANNEL_NAME}
+# tweak settings to ~match GW170104
+pycbc_generate_hwinj --approximant SEOBNRv4 --order pseudoFourPN --mass1 33.8 --mass2 22.7 --inclination ${INC} --polarization ${POL} --ra ${RA} --dec ${DEC} --taper TAPER_START --network-snr 13 --geocentric-end-time ${INJECTION_TIME} --waveform-low-frequency-cutoff 30.0 --gps-start-time ${START_TIME} --gps-end-time ${END_TIME} --instruments L1 --frame-type ${FRAME_TYPE} --strain-high-pass L1:20 --sample-rate L1:16384 --psd-estimation median --psd-segment-length 16 --psd-segment-stride 8 --psd-inverse-length 16 --psd-low-frequency-cutoff 30 --psd-high-frequency-cutoff 1000 --pad-data L1:8 --channel-name ${CHANNEL_NAME}
 
 HWINJ_PATH=${PWD}/`ls hwinjcbc_*.xml.gz`
 
@@ -49,7 +56,7 @@ pycbc_make_cal_workflow \
                      adjust_strain:transfer-function-d:${PATH_D}
 
 # This submits the workflow to the cluster then runs it.
-pycbc_submit_dax --no-create-proxy --dax ${WORKFLOW_NAME}/${WORKFLOW_NAME}.dax --accounting-group sugwg.astro
+echo pycbc_submit_dax --no-create-proxy --dax ${WORKFLOW_NAME}/${WORKFLOW_NAME}.dax --accounting-group sugwg.astro
 
 cd ${BASE_PATH}
 
