@@ -70,7 +70,7 @@ parser.add_argument("--transfer-function-a-tst", type=str, required=True,
 parser.add_argument("--transfer-function-a-pu", type=str, required=True,
                   help="Path to ASCII file that contains reference actuation "
                        "function A_pu for the upper pendulum stages.")
-parser.add_argument("--transfer-function-a-uim", type=str, required=True,
+parser.add_argument("--transfer-function-a-uim", type=str,
                   help="Path to ASCII file that contains reference actuation "
                        "function A_uim.")
 parser.add_argument("--transfer-function-c", type=str, required=True,
@@ -101,7 +101,10 @@ pycbc.init_logging(opts.verbose)
 logging.info("Reading transfer functions from files")
 a_tst = tf_from_file(opts.transfer_function_a_tst)
 a_pu = tf_from_file(opts.transfer_function_a_pu)
-a_uim = tf_from_file(opts.transfer_function_a_uim)
+if opts.transfer_function_a_uim:
+    a_uim = tf_from_file(opts.transfer_function_a_uim)
+else:
+    a_uim = 0.
 c = tf_from_file(opts.transfer_function_c)
 d = tf_from_file(opts.transfer_function_d)
 
