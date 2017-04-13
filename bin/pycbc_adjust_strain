@@ -45,6 +45,14 @@ parser.add_argument("--fc0", type=float, required=True,
                     help="Initial cavity pole frequency in Hertz.")
 parser.add_argument("--delta-fc", type=float, required=True,
                     help="Change in the cavity pole frequency in Hertz.")
+parser.add_argument("--fs0", type=float,
+                    help="Initial SRC spring frequency in Hertz.")
+parser.add_argument("--delta-fs", type=float,
+                    help="Change in the SRC spring frequency in Hertz.")
+parser.add_argument("--q0", type=float,
+                    help="Initial SRC quality factor.")
+parser.add_argument("--delta-q", type=float,
+                    help="Change in the SRC quality factor.")
 parser.add_argument("--kappa-tst-re", type=float, required=True,
                     help="New real part of gain in the test mass "
                          "actuation function A_{tst} "
@@ -79,6 +87,8 @@ parser.add_argument("--transfer-function-c", type=str, required=True,
 parser.add_argument("--transfer-function-d", type=str, required=True,
                   help="Path to ASCII file that contains reference "
                        "digital filters.")
+parser.add_argument("--src", action="store_true",
+                  help="Use SRC detuning parameters in model.")
 
 # output options
 parser.add_argument("--output-frame", type=str, required=True,
@@ -113,21 +123,37 @@ a_pu += a_uim
 
 # set initial calibration for epoch
 freqlist = c[:, 0]
-cal = cal.Calibration(freq=freqlist, fc0=opts.fc0, c0=c[:, 1], d0=d[:, 1],
-                      a_tst0=a_tst[:, 1], a_pu0=a_pu[:, 1])
+if not opts.src:
+    cal = cal.Calibration(freq=freqlist, fc0=opts.fc0, c0=c[:, 1], d0=d[:, 1],
+                          a_tst0=a_tst[:, 1], a_pu0=a_pu[:, 1])
+else:
+    cal = cal.Calibration(freq=freqlist, fc0=opts.fc0, c0=c[:, 1], d0=d[:, 1],
+                          a_tst0=a_tst[:, 1], a_pu0=a_pu[:, 1], fs0=opts.fs0,
+                          q0=opts.q0, src=True)
 
 # get strain
 strain = _strain.from_cli(opts)
 
 # adjust strain with time-varying parameters from command line
 logging.info("Adjusting strain")
-strain_adjusted = cal.adjust_strain(strain, 
-                                    delta_fc=opts.delta_fc,
-                                    kappa_c=opts.kappa_c, 
-                                    kappa_tst_re=opts.kappa_tst_re,
-                                    kappa_tst_im=opts.kappa_tst_im, 
-                                    kappa_pu_re=opts.kappa_pu_re,
-                                    kappa_pu_im=opts.kappa_pu_im)
+if opts.src:
+    strain_adjusted = cal.adjust_strain(strain, 
+                                        delta_fc=opts.delta_fc,
+                                        delta_fs=opts.delta_fs,
+                                        delta_q=opts.delta_q,
+                                        kappa_c=opts.kappa_c, 
+                                        kappa_tst_re=opts.kappa_tst_re,
+                                        kappa_tst_im=opts.kappa_tst_im, 
+                                        kappa_pu_re=opts.kappa_pu_re,
+                                        kappa_pu_im=opts.kappa_pu_im)
+else:
+    strain_adjusted = cal.adjust_strain(strain,
+                                        delta_fc=opts.delta_fc,
+                                        kappa_c=opts.kappa_c,
+                                        kappa_tst_re=opts.kappa_tst_re,
+                                        kappa_tst_im=opts.kappa_tst_im,
+                                        kappa_pu_re=opts.kappa_pu_re,
+                                        kappa_pu_im=opts.kappa_pu_im)
 
 # write frame file with adjusted strain
 logging.info("Writing frame with adjusted strain")

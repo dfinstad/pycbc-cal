@@ -46,6 +46,8 @@ parser = argparse.ArgumentParser(usage='pycbc_make_cal_workflow [--options]',
                                  description="Workflow generator for adjusting calibration model.")
 parser.add_argument("--name", type=str, required=True,
                     help="Descriptive name of the analysis.")
+parser.add_argument("--src", action="store_true",
+                    help="Use SRC detuning parameters.")
 _workflow.add_workflow_command_line_group(parser)
 args = parser.parse_args()
 
@@ -125,7 +127,7 @@ inspiral_exe = PyCBCInspiralExecutable(workflow.cp, 'inspiral', ifo=ifo,
 inspiral_files = _workflow.FileList([])
 
 
-def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe, frame_files, data_segs, ifo, banks, inspiral_files, param, param_value, kappa_tst=1.0, kappa_tstim=0.0, kappa_pu=1.0, kappa_puim=0.0, kappa_c=1.0, delta_fc=0.0):
+def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe, frame_files, data_segs, ifo, banks, inspiral_files, param, param_value, kappa_tst=1.0, kappa_tstim=0.0, kappa_pu=1.0, kappa_puim=0.0, kappa_c=1.0, delta_fc=0.0, delta_fs=0.0, delta_q=0.0, src=False):
     """Run the adjust_strain and inspiral executables.
     
     Parameters
@@ -175,6 +177,10 @@ def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe
     # If delta_fc = 0.0 and isn't cast to str, then it will be read by the argument parser as None
     # (as in the argument doesn't exist).
     adjust_strain_node.add_opt('--delta-fc', str(delta_fc))
+    if src:
+        adjust_strain_node.add_opt('--src')
+        adjust_strain_node.add_opt('--delta-fs', str(delta_fs))
+        adjust_strain_node.add_opt('--delta-q', str(delta_q))
     
     # create output file for the adjusted strain
     adjusted_frame_file = _workflow.File(ifo, 'ADJUSTED_FRAME',
@@ -204,7 +210,6 @@ def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe
                             parent=tmpltbank_file,
                             dfParents=[adjusted_frame_file], tags=[tag])
     workflow.add_node(inspiral_node)
-    #print inspiral_node.output_file
     inspiral_files.append(inspiral_node.output_file)
 
 
@@ -213,37 +218,50 @@ def run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe
 for kappa_tst in numpy.linspace(0.75, 1.25, 51):
     run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe, 
                                         frame_files, data_segs, ifo, banks, inspiral_files, 
-                                        'kappa_tst', kappa_tst, kappa_tst=kappa_tst)
+                                        'kappa_tst', kappa_tst, kappa_tst=kappa_tst, src=args.src)
 
 # loop over values of different kappa_tstim
 for kappa_tstim in numpy.linspace(-0.25, 0.25, 51):
     run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
                                         frame_files, data_segs, ifo, banks, inspiral_files,
-                                        'kappa_tstim', kappa_tstim, kappa_tstim=kappa_tstim)
+                                        'kappa_tstim', kappa_tstim, kappa_tstim=kappa_tstim, src=args.src)
 
 # loop over values of different kappa_pu
 for kappa_pu in numpy.linspace(0.75, 1.25, 51):
     run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
                                         frame_files, data_segs, ifo, banks, inspiral_files,
-                                        'kappa_pu', kappa_pu, kappa_pu=kappa_pu)
+                                        'kappa_pu', kappa_pu, kappa_pu=kappa_pu, src=args.src)
 
 # loop over values of different kappa_puim
 for kappa_puim in numpy.linspace(-0.25, 0.25, 51):
     run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
                                         frame_files, data_segs, ifo, banks, inspiral_files,
-                                        'kappa_puim', kappa_puim, kappa_puim=kappa_puim)
+                                        'kappa_puim', kappa_puim, kappa_puim=kappa_puim, src=args.src)
 
 # loop over values of different kappa_C
 for kappa_c in numpy.linspace(0.75, 1.25, 51):
     run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
                                         frame_files, data_segs, ifo, banks, inspiral_files,
-                                        'kappa_c', kappa_c, kappa_c=kappa_c)
+                                        'kappa_c', kappa_c, kappa_c=kappa_c, src=args.src)
 
 # loop over values of different delta_fc
 for delta_fc in numpy.linspace(-40.0, 40.0, 51):
     run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
                                         frame_files, data_segs, ifo, banks, inspiral_files,
-                                        'delta_fc', delta_fc, delta_fc=delta_fc)
+                                        'delta_fc', delta_fc, delta_fc=delta_fc, src=args.src)
+
+if args.src:
+    # loop over values of different delta_fs
+    for delta_fs in numpy.linspace(-10.0, 20.0, 51):
+        run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
+                                            frame_files, data_segs, ifo, banks, inspiral_files,
+                                            'delta_fs', delta_fs, delta_fs=delta_fs, src=args.src)
+
+    # loop over values of different delta_q
+    for delta_q in numpy.linspace(-10.0, 80.0, 51):
+        run_adjust_strain_and_inspiral_exe(workflow, adjust_strain_exe, inspiral_exe,
+                                            frame_files, data_segs, ifo, banks, inspiral_files,
+                                            'delta_q', delta_q, delta_q=delta_q, src=args.src)
 
 ## add a node that plots the values of SNR as kappa_tst changes
 #plot_stat_exe = _workflow.Executable(workflow.cp, 'plot_stat',
