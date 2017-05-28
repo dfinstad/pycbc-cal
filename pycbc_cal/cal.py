@@ -25,7 +25,7 @@ class Calibration:
     """
     
     def __init__(self, freq=None, fc0=None, invc0=None, c0=None, d0=None,
-                 a_tst0=None, a_pu0=None, src=False, fs0=None, q0=None):
+                 a_tst0=None, a_pu0=None, src=False, fs0=None, qinv0=None):
         """ Initialize the class with the transfer functions for a given epoch
         that starts at time t0.
         
@@ -67,13 +67,13 @@ class Calibration:
         self.d0 = d0
         self.a_tst0 = a_tst0
         self.a_pu0 = a_pu0
-        self.fc0 = fc0
+        self.fc0 = float(fc0)
         # if using SRC detuning parameters, set them here
         if src:
             self.src = True
-            self.fs0 = fs0
-            self.q0 = q0
-            init_detuning = (self.freq**2) / (self.freq**2 - 1.0j * self.freq * fs0 / q0 + fs0**2)
+            self.fs0 = float(fs0)
+            self.qinv0 = float(qinv0)
+            init_detuning = self.freq**2 / (self.freq**2 - 1.0j * self.freq * fs0 * qinv0 + fs0**2)
             print("Init detuning:", init_detuning)
         else:
             self.src = False
@@ -88,10 +88,10 @@ class Calibration:
         # calculate the residual of c0 after factoring out the CC pole fc0 
         # if using the new calibration convention where fc0 is defined
         if fc0 is not None:
-            self.c_res = self.c0 * (1 + 1.0j * self.freq / fc0) * init_detuning
+            self.c_res = self.c0 * (1 + 1.0j * self.freq / fc0) / init_detuning
 
 
-    def update_c(self, delta_fc=0.0, kappa_c=1.0, delta_fs=0.0, delta_q=0.0):
+    def update_c(self, delta_fc=0.0, kappa_c=1.0, delta_fs=0.0, delta_qinv=0.0):
         """ Calculate the sensing function c(f,t) given the new parameters 
         kappa_c(t), kappa_a(t), and \Delta f_c(t) = f_c(t) - f_c(t_0).
         
@@ -113,8 +113,8 @@ class Calibration:
         # calculate detuning
         if self.src:
             fs = self.fs0 + delta_fs
-            q = self.q0 + delta_q
-            detuning_term = (self.freq**2) / (self.freq**2 - 1.0j * self.freq * fs / q + fs**2)
+            qinv = self.qinv0 + delta_qinv
+            detuning_term = self.freq**2 / (self.freq**2 - 1.0j * self.freq * fs * qinv + fs**2)
             print("Updating detuning...")
         else:
             detuning_term = 1.0
@@ -125,7 +125,7 @@ class Calibration:
     
     def update_g(self, delta_fc=0.0, kappa_c=1.0,
                  kappa_tst_re=1.0, kappa_tst_im=0.0,
-                 kappa_pu_re=1.0, kappa_pu_im=0.0, delta_fs=0.0, delta_q=0.0):
+                 kappa_pu_re=1.0, kappa_pu_im=0.0, delta_fs=0.0, delta_qinv=0.0):
         """ Calculate the open loop gain g(f,t) given the new parameters 
         kappa_c(t), kappa_a(t), and \Delta f_c(t) = f_c(t) - f_c(t_0).
         
@@ -154,7 +154,7 @@ class Calibration:
         g : numpy.array
             The new open loop gain g(f,t).
         """
-        c = self.update_c(delta_fc=delta_fc, kappa_c=kappa_c, delta_fs=delta_fs, delta_q=delta_q)
+        c = self.update_c(delta_fc=delta_fc, kappa_c=kappa_c, delta_fs=delta_fs, delta_qinv=delta_qinv)
         a_tst = self.a_tst0 * (kappa_tst_re + 1.0j * kappa_tst_im)
         a_pu = self.a_pu0 * (kappa_pu_re + 1.0j * kappa_pu_im)
         return c * self.d0 * (a_tst + a_pu)
@@ -162,7 +162,7 @@ class Calibration:
     
     def update_r(self, delta_fc=0.0, kappa_c=1.0,
                  kappa_tst_re=1.0, kappa_tst_im=0.0,
-                 kappa_pu_re=1.0, kappa_pu_im=0.0, delta_fs=0.0, delta_q=0.0):
+                 kappa_pu_re=1.0, kappa_pu_im=0.0, delta_fs=0.0, delta_qinv=0.0):
         """ Calculate the response function R(f,t) given the new parameters 
         kappa_c(t), kappa_a(t), and \Delta f_c(t) = f_c(t) - f_c(t_0).
 
@@ -191,16 +191,16 @@ class Calibration:
         r : numpy.array
             The new response function r(f,t).
         """
-        c = self.update_c(delta_fc=delta_fc, kappa_c=kappa_c, delta_fs=delta_fs, delta_q=delta_q)
+        c = self.update_c(delta_fc=delta_fc, kappa_c=kappa_c, delta_fs=delta_fs, delta_qinv=delta_qinv)
         g = self.update_g(delta_fc=delta_fc, kappa_c=kappa_c,
                           kappa_tst_re=kappa_tst_re, kappa_tst_im=kappa_tst_im,
-                          kappa_pu_re=kappa_pu_re, kappa_pu_im=kappa_pu_im, delta_fs=delta_fs, delta_q=delta_q)
+                          kappa_pu_re=kappa_pu_re, kappa_pu_im=kappa_pu_im, delta_fs=delta_fs, delta_qinv=delta_qinv)
         return (1.0 + g) / c
 
 
     def adjust_strain(self, strain, delta_fc=0.0, kappa_c=1.0,
                       kappa_tst_re=1.0, kappa_tst_im=0.0,
-                      kappa_pu_re=1.0, kappa_pu_im=0.0, delta_fs=0.0, delta_q=0.0):
+                      kappa_pu_re=1.0, kappa_pu_im=0.0, delta_fs=0.0, delta_qinv=0.0):
         """Adjust the TimeSeries strain by changing the time-dependent
         calibration parameters kappa_c(t), kappa_a(t), and
         \Delta f_c(t) = f_c(t) - f_c(t_0).
@@ -243,7 +243,7 @@ class Calibration:
                                    kappa_tst_im=kappa_tst_im,
                                    kappa_pu_re=kappa_pu_re,
                                    kappa_pu_im=kappa_pu_im, delta_fs=delta_fs,
-                                   delta_q=delta_q)
+                                   delta_qinv=delta_qinv)
 
         # get the error function to apply to the strain in the frequency-domain
         k = r_adjusted / r_true
