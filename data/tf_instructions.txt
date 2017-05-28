@@ -1,0 +1,19 @@
+Instructions for generating ALIGO transfer functions
+
+Navigate to aligocalibration SVN. My copy of this repo can
+be found at LHO: /home/daniel.finstad/src/aligocalibration/
+
+Navigate to tf-generating script for desired IFO (relative
+to the SVN path):
+L1: trunk/Runs/O2/L1/Scripts/DARMOLGTFs/acd_tfs.m
+H1: trunk/Runs/O2/H1/Scripts/DARMOLGTFs/acd_tfs_h1.m
+
+Edit script to set IFOparams to desired reference
+measurement file. These can be found at:
+
+trunk/Runs/O2/IFO/params/MEASUREMENT_DATE/modelparams*.conf
+
+where IFO is either H1 or L1, and MEASUREMENT_DATE is the
+date the reference measurements were taken
+
+Start matlab, execute script
